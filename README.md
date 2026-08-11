@@ -4,7 +4,7 @@ A small local browser app that turns a stand-up SRT into a pause-based, pen-read
 
 ## Use online
 
-[Open Subtitle Folio](https://theberdakh.github.io/srt-to-pdf/). The SRT is processed entirely in your browser and is not uploaded or stored.
+[Open Subtitle Folio](https://berdakh.uz/srt-to-pdf/). The SRT is processed entirely in your browser and is not uploaded or stored.
 
 ## Run
 
