@@ -1,0 +1,112 @@
+---
+name: Subtitle Folio
+description: A quiet pause-based stand-up transcript worksheet for handwritten analysis.
+colors:
+  proof-red: "#ad322a"
+  proof-red-deep: "#8e251f"
+  paper: "#fffdfa"
+  canvas: "#f2efe7"
+  panel: "#ebe7de"
+  preview-bed: "#d8d2c5"
+  ink: "#171713"
+  muted-ink: "#67645c"
+  rule: "#cfc8ba"
+  soft-rule: "#e5dfd4"
+  focus-blue: "#116bb5"
+typography:
+  display:
+    fontFamily: "Folio Serif, Georgia, serif"
+    fontSize: "4rem"
+    fontWeight: 500
+    lineHeight: 0.98
+    letterSpacing: "-0.04em"
+  document-title:
+    fontFamily: "Folio Serif, Georgia, serif"
+    fontSize: "2.5rem"
+    fontWeight: 500
+    lineHeight: 1.04
+  manuscript:
+    fontFamily: "Folio Serif, Georgia, serif"
+    fontSize: "1.02rem"
+    fontWeight: 400
+    lineHeight: 1.55
+  body:
+    fontFamily: "ui-sans-serif, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.6
+  control:
+    fontFamily: "ui-sans-serif, sans-serif"
+    fontSize: "0.88rem"
+    fontWeight: 720
+    lineHeight: 1.2
+  metadata:
+    fontFamily: "ui-sans-serif, sans-serif"
+    fontSize: "0.68rem"
+    fontWeight: 400
+    lineHeight: 1.35
+rounded:
+  field: "8px"
+  control: "12px"
+  surface: "14px"
+spacing:
+  xs: "8px"
+  sm: "12px"
+  md: "24px"
+  lg: "48px"
+  xl: "64px"
+components:
+  button-primary:
+    backgroundColor: "{colors.proof-red}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    height: "48px"
+  button-export:
+    backgroundColor: "{colors.ink}"
+    textColor: "#ffffff"
+    rounded: "{rounded.control}"
+    height: "48px"
+  input:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
+    height: "40px"
+---
+
+# Design System: Subtitle Folio
+
+## Overview
+
+**Creative North Star: “The Unprescribed Worksheet”**
+
+Subtitle Folio prints evidence and leaves interpretation to the analyst. The interface contains one grouping rule—silence—and the paper contains only a titled ruled front page, transcript, time, and ruled notes. Warm paper and an editorial serif make long reading comfortable; proof red is restricted to the file action and time anchors.
+
+## Layout
+
+Before upload, the title and file choice lead. After upload, the introduction disappears and a 270px settings rail sits beside the paper preview. The settings rail contains only title, silence threshold, and export.
+
+The printed document begins with the special title and a full ruled page. The title does not repeat on transcript pages. Each worksheet block has two regions: the transcript with its start time directly above it, and a wider ruled formula/notes lane. Blocks are separated by generous writing space rather than visible horizontal rules. The block has a 28mm base height plus 0.65mm per second of content, capped at 76mm; text can expand it further.
+
+At phone widths the transcript stays first, while the ruled notes move beneath it. Print restores the right-hand lane at 70mm, uses A4 margins, and keeps each block together when possible.
+
+## Typography
+
+Folio Serif is reserved for the opening statement, document title, and transcript. The system sans carries controls, metadata, and timestamps. Transcript copy prints at 10.2pt.
+
+## Color and Material
+
+The palette is warm paper, graphite controls, black ink, and one proof-red annotation voice. Fine neutral rules are functional writing guides. Each ruled surface distributes lines from the centers of equal-height rows, leaving identical space above the first line and below the last. The workbench and paper use soft offset shadows in the browser; print removes all depth.
+
+## Components
+
+- **Silence threshold:** a numeric seconds field from 0.5 to 15, defaulting to 2.5.
+- **Front page:** the special title followed by a full page of writing rules.
+- **Worksheet block:** start time above the transcript and a wide right-hand ruled notes lane, without an outer separator.
+- **Paper preview:** one continuous document whose browser geometry matches the natural print flow.
+
+## Rules
+
+- Do not print laugh symbols, joke classifications, analytical prompts, formulas, bit identities, or semantic guesses.
+- Do not split on speaker, character count, or elapsed duration; silence alone creates a new block.
+- Keep the notes lane visually quieter than the transcript.
+- Preserve keyboard focus, local processing, responsive reading, and native print behavior.

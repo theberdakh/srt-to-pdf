@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Turn stand-up subtitles into a simple pause-based worksheet for handwritten analysis." />
+    <meta name="theme-color" content="#f2efe7" />
+    <title>Subtitle Folio — Stand-up analysis worksheet</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: A stand-up transcript needs only speech, silence, and room for the analyst's own thinking.
+      OWN-WORLD: Warm paper, black ink, one proof-red action, and fine pencil rules. A fully ruled front page precedes a transcript with an unprescribed right-hand notes lane.
+      STORY: Choose an SRT, set the silence that begins a new thought, review the cover and transcript, and print.
+      FIRST VIEWPORT: File choice leads before upload; afterward the worksheet immediately replaces the introduction.
+      FORM: Distilled editorial worksheet; ruled cover first, then time and transcript left with formula notes right.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Subtitle Folio home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 7.5h22M5 13.2h17M5 18.8h22M5 24.5h13" /></svg>
+        <span>Subtitle Folio</span>
+      </a>
+      <p class="privacy-note">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8V6a4.5 4.5 0 0 1 9 0v2M4 8h12v9H4z" /></svg>
+        Your file stays in this browser
+      </p>
+    </header>
+
+    <main class="workspace">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <h1 id="page-title">Print the words.<br />Do the thinking yourself.</h1>
+          <p>Subtitles become pause-separated blocks with blank space for what each thought is about and ruled notes for the formula.</p>
+        </div>
+        <div class="upload-actions">
+          <input id="file-input" class="visually-hidden" type="file" accept=".srt,application/x-subrip,text/plain" />
+          <button id="upload-button" class="button button--primary" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 13V3m0 0L6 7m4-4 4 4M3 12v4h14v-4" /></svg>
+            Choose SRT file
+          </button>
+          <button id="sample-button" class="text-button" type="button">Try an example</button>
+        </div>
+      </section>
+
+      <div id="drop-zone" class="workbench" data-state="empty">
+        <aside class="controls" aria-label="Worksheet settings">
+          <div class="controls__topline">
+            <span>Worksheet</span>
+            <span id="file-status" class="file-status">No file yet</span>
+          </div>
+
+          <label class="field">
+            <span>Title</span>
+            <input id="document-title" type="text" value="Untitled transcript" maxlength="100" disabled />
+          </label>
+
+          <label class="field">
+            <span>Start a new block after</span>
+            <span class="number-field">
+              <input id="pause-threshold" type="number" value="2.5" min="0.5" max="15" step="0.5" inputmode="decimal" />
+              <small>seconds of silence</small>
+            </span>
+          </label>
+
+          <p class="setting-note">Every block gets a minimum writing area. Longer moments get more space automatically.</p>
+          <div id="error-message" class="error-message" role="alert" hidden></div>
+
+          <button id="print-button" class="button button--ink" type="button" disabled>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7V3h10v4M5 14H3V8h14v6h-2M5 11h10v6H5z" /></svg>
+            Save as PDF
+          </button>
+          <p id="page-estimate" class="page-estimate" aria-live="polite" hidden>
+            <span>Estimated PDF length</span>
+            <strong id="page-total">—</strong>
+          </p>
+        </aside>
+
+        <section class="preview-region" aria-labelledby="preview-heading">
+          <div class="preview-toolbar">
+            <h2 id="preview-heading">Worksheet preview</h2>
+            <button id="replace-button" class="text-button" type="button" hidden>Replace file</button>
+          </div>
+
+          <article id="print-document" class="paper" aria-live="polite">
+            <div id="empty-state" class="empty-state">
+              <svg viewBox="0 0 72 72" aria-hidden="true"><path d="M19 8h25l10 10v46H19zM44 8v11h10M27 32h19M27 40h19M27 48h13" /></svg>
+              <h2>Your worksheet will appear here</h2>
+              <p>Drop an SRT anywhere on this panel, or choose one above.</p>
+            </div>
+
+            <div id="document-content" class="document-content" hidden>
+              <section class="cover-page" aria-label="Front notes page">
+                <h2 id="print-title">Untitled transcript</h2>
+                <div class="cover-lines" aria-hidden="true"></div>
+              </section>
+
+              <section class="transcript-document">
+                <div id="blocks" class="blocks"></div>
+              </section>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer"><span>Private by design.</span><span>Fast by default.</span></footer>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
