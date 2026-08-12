@@ -1,5 +1,7 @@
 import { eventEndsTranscriptLine, tokenizeTranscript } from './audio-events.js?v=__BUILD_VERSION__';
 
+const MINUTE_MS = 60_000;
+
 function makeLine(indent = false, thoughtBreakBefore = false) {
   return { runs: [], indent, thoughtBreakBefore };
 }
@@ -61,4 +63,28 @@ export function layoutTranscript(text) {
     eventsOnly: tokens.length > 0 && tokens.every(({ type }) => type === 'event'),
     lines,
   };
+}
+
+export function markElapsedMinutes(lines, startMs, endMs, startingMinute = 1) {
+  const safeLines = Array.isArray(lines) ? lines : [];
+  const safeStartMs = Math.max(0, Number(startMs) || 0);
+  const safeEndMs = Math.max(safeStartMs, Number(endMs) || safeStartMs);
+  let nextMinute = Math.max(1, Math.floor(Number(startingMinute) || 1));
+  const lastLineIndex = Math.max(1, safeLines.length - 1);
+
+  const markedLines = safeLines.map((line, lineIndex) => {
+    const lineTimeMs = safeLines.length === 1
+      ? safeEndMs
+      : safeStartMs + (safeEndMs - safeStartMs) * (lineIndex / lastLineIndex);
+    const minuteMarkersBefore = [];
+
+    while (nextMinute * MINUTE_MS <= lineTimeMs) {
+      minuteMarkersBefore.push(nextMinute);
+      nextMinute += 1;
+    }
+
+    return { ...line, minuteMarkersBefore };
+  });
+
+  return { lines: markedLines, nextMinute };
 }

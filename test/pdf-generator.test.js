@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createPdfDefinition,
   estimatePdfPageCount,
-  paginateTranscriptBlocks,
+  prepareTranscriptSegments,
   pdfFilename,
   resolveBrowserPdfFonts,
   splitTranscriptForPdf,
@@ -40,21 +40,45 @@ test('splits unusually long blocks into PDF-safe worksheet segments', () => {
   assert.equal(chunks.flat().length, 70);
 });
 
-test('targets roughly two transcript minutes per PDF page plus the cover', () => {
-  assert.equal(estimatePdfPageCount([{ endMs: 40 * 60_000 }]), 21);
-  assert.equal(estimatePdfPageCount([{ endMs: 119_000 }]), 2);
+test('estimates pages from content height rather than elapsed minutes', () => {
+  assert.equal(estimatePdfPageCount([{ startMs: 0, endMs: 40 * 60_000, text: 'One short line.' }]), 2);
+  assert.equal(estimatePdfPageCount([{ startMs: 0, endMs: 119_000, text: 'Another short line.' }]), 2);
   assert.equal(estimatePdfPageCount([]), 1);
 });
 
-test('assigns transcript lines to explicit two-minute page windows', () => {
-  const pages = paginateTranscriptBlocks([
+test('keeps natural transcript flow and adds elapsed-minute markers', () => {
+  const segments = prepareTranscriptSegments([
     { startMs: 0, endMs: 180_000, text: 'first\nsecond\nthird\nfourth' },
   ]);
-  assert.equal(pages.length, 2);
-  assert.match(JSON.stringify(pages), /first second third/);
-  assert.match(JSON.stringify(pages), /fourth/);
-  assert.equal(pages[0][0].segmentIndex, 0);
-  assert.equal(pages[1][0].segmentIndex, 1);
+  assert.equal(segments.length, 1);
+  assert.deepEqual(
+    segments[0].lines.map((line) => line.minuteMarkersBefore),
+    [[], [1], [2], [3]],
+  );
+});
+
+test('balances unusually long continuations instead of leaving one orphan line', () => {
+  const segments = prepareTranscriptSegments([{
+    startMs: 0,
+    endMs: 180_000,
+    text: Array.from({ length: 58 }, (_, index) => `logical worksheet line ${index + 1}`).join('\n'),
+  }]);
+
+  assert.ok(segments.length > 1);
+  assert.ok(segments.at(-1).lines.length >= 3);
+});
+
+test('does not force transcript page breaks for elapsed time', () => {
+  const definition = createPdfDefinition({
+    title: 'Natural flow',
+    notation: DEFAULT_NOTATION,
+    blocks: [{ startMs: 0, endMs: 180_000, text: 'first\nsecond\nthird\nfourth' }],
+  });
+
+  assert.doesNotMatch(JSON.stringify(definition.content.slice(3)), /"pageBreak"/);
+  assert.match(JSON.stringify(definition.content.slice(3)), /1 MIN/);
+  assert.match(JSON.stringify(definition.content.slice(3)), /2 MIN/);
+  assert.match(JSON.stringify(definition.content.slice(3)), /3 MIN/);
 });
 
 test('makes a filesystem-safe PDF filename from the edited title', () => {

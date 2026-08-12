@@ -1,13 +1,14 @@
 import { formatTimestamp } from './srt.js?v=__BUILD_VERSION__';
-import { layoutTranscript } from './transcript-layout.js?v=__BUILD_VERSION__';
+import { layoutTranscript, markElapsedMinutes } from './transcript-layout.js?v=__BUILD_VERSION__';
 
 const POINTS_PER_MM = 72 / 25.4;
 const PAGE_MARGIN = Object.freeze([18 * POINTS_PER_MM, 17 * POINTS_PER_MM, 18 * POINTS_PER_MM, 22 * POINTS_PER_MM]);
 const TRANSCRIPT_FONT_SIZE = 8;
 const TRANSCRIPT_LINE_HEIGHT = 1.2;
-const TARGET_MINUTES_PER_PAGE = 2;
 const MAX_TRANSCRIPT_LINE_UNITS_PER_PAGE = 40;
 const NOTES_COLUMN_WIDTH = 180;
+const A4_HEIGHT = 841.89;
+const PRINTABLE_PAGE_HEIGHT = A4_HEIGHT - PAGE_MARGIN[1] - PAGE_MARGIN[3];
 const COLORS = Object.freeze({
   accent: '#ad322a',
   ink: '#171713',
@@ -111,13 +112,18 @@ function lineUnits(line) {
   const visibleCharacters = line.runs.reduce((total, run) => total + (
     run.type === 'text' ? run.value.trim().length : 3
   ), 0);
-  return Math.max(1, Math.ceil(visibleCharacters / 58)) + (line.thoughtBreakBefore ? 0.3 : 0);
+  const markerUnits = (line.minuteMarkersBefore?.length ?? 0) * 1.5;
+  return Math.max(1, Math.ceil(visibleCharacters / 58)) + (line.thoughtBreakBefore ? 0.3 : 0) + markerUnits;
 }
 
 function compactTranscriptLines(lines) {
   const compacted = [];
   lines.forEach((sourceLine) => {
-    const line = { ...sourceLine, runs: sourceLine.runs.map((run) => ({ ...run })) };
+    const line = {
+      ...sourceLine,
+      runs: sourceLine.runs.map((run) => ({ ...run })),
+      minuteMarkersBefore: [...(sourceLine.minuteMarkersBefore ?? [])],
+    };
     const previous = compacted.at(-1);
     const previousHasPerformanceMark = previous?.runs.some((run) => run.type === 'event' && run.kind !== 'censored');
     const lineHasPerformanceMark = line.runs.some((run) => run.type === 'event' && run.kind !== 'censored');
@@ -126,6 +132,7 @@ function compactTranscriptLines(lines) {
       : Number.POSITIVE_INFINITY;
     const canMerge = previous &&
       !line.thoughtBreakBefore &&
+      !line.minuteMarkersBefore.length &&
       !line.indent &&
       !previousHasPerformanceMark &&
       !lineHasPerformanceMark &&
@@ -169,39 +176,67 @@ export function splitTranscriptForPdf(text, maxLineUnits = MAX_TRANSCRIPT_LINE_U
   return chunks;
 }
 
-export function paginateTranscriptBlocks(blocks, pageDurationMs = TARGET_MINUTES_PER_PAGE * 60_000) {
-  const pages = new Map();
-  if (!Array.isArray(blocks) || !Number.isFinite(pageDurationMs) || pageDurationMs <= 0) return [];
+function splitLinesByUnits(lines, maxLineUnits) {
+  const chunks = [];
+  let chunk = [];
+  let units = 0;
+
+  lines.forEach((line) => {
+    const nextUnits = lineUnits(line);
+    if (chunk.length && units + nextUnits > maxLineUnits) {
+      chunks.push(chunk);
+      chunk = [];
+      units = 0;
+    }
+    chunk.push(line);
+    units += nextUnits;
+  });
+  if (chunk.length) chunks.push(chunk);
+
+  if (chunks.length > 1) {
+    const minimumTrailingUnits = Math.min(8, maxLineUnits * 0.25);
+    const previous = chunks.at(-2);
+    const trailing = chunks.at(-1);
+    let trailingUnits = trailing.reduce((total, line) => total + lineUnits(line), 0);
+
+    while (trailingUnits < minimumTrailingUnits && previous.length > 1) {
+      const movedLine = previous.pop();
+      trailing.unshift(movedLine);
+      trailingUnits += lineUnits(movedLine);
+    }
+  }
+
+  return chunks;
+}
+
+export function prepareTranscriptSegments(blocks, maxLineUnits = MAX_TRANSCRIPT_LINE_UNITS_PER_PAGE) {
+  if (!Array.isArray(blocks) || !Number.isFinite(maxLineUnits) || maxLineUnits <= 0) return [];
+  const prepared = [];
+  let nextMinute = 1;
 
   blocks.forEach((block) => {
-    const lines = layoutTranscript(block.text).lines;
+    const marked = markElapsedMinutes(
+      layoutTranscript(block.text).lines,
+      block.startMs,
+      block.endMs,
+      nextMinute,
+    );
+    nextMinute = marked.nextMinute;
+    const lines = compactTranscriptLines(marked.lines);
     if (!lines.length) return;
-    const durationMs = Math.max(1, block.endMs - block.startMs);
-    const segments = [];
 
-    lines.forEach((line, lineIndex) => {
-      const lineTimeMs = block.startMs + durationMs * (lineIndex / lines.length);
-      const pageIndex = Math.floor(lineTimeMs / pageDurationMs);
-      const current = segments.at(-1);
-      if (current?.pageIndex === pageIndex) current.lines.push(line);
-      else segments.push({ pageIndex, lines: [line] });
-    });
-
-    segments.forEach((segment, segmentIndex) => {
-      const page = pages.get(segment.pageIndex) ?? [];
-      page.push({
+    const chunks = splitLinesByUnits(lines, maxLineUnits);
+    chunks.forEach((chunk, segmentIndex) => {
+      prepared.push({
         block,
-        lines: compactTranscriptLines(segment.lines),
+        lines: chunk,
         segmentIndex,
-        segmentCount: segments.length,
+        segmentCount: chunks.length,
       });
-      pages.set(segment.pageIndex, page);
     });
   });
 
-  return [...pages.entries()]
-    .sort(([left], [right]) => left - right)
-    .map(([, segments]) => segments);
+  return prepared;
 }
 
 function blockHeightPoints(block) {
@@ -223,6 +258,26 @@ function writingRules(height) {
     rules.push({ type: 'line', x1: 0, y1: y, x2: NOTES_COLUMN_WIDTH - 16, y2: y, lineWidth: 0.45, lineColor: COLORS.lineSoft });
   }
   return { canvas: rules };
+}
+
+function minuteDivider(minute) {
+  const dividerRule = () => ({
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 68, y2: 0, lineWidth: 0.45, lineColor: COLORS.accent }],
+    margin: [0, 4.2, 0, 0],
+  });
+  return {
+    columns: [dividerRule(), {
+      text: `${minute} MIN`,
+      width: 'auto',
+      color: COLORS.accent,
+      font: 'Roboto',
+      fontSize: 6.2,
+      bold: true,
+      characterSpacing: 0.55,
+    }, dividerRule()],
+    columnGap: 5,
+    margin: [0, 5, 0, 4],
+  };
 }
 
 function worksheetSegment(block, lines, notation, hasHours, segmentIndex, segmentCount) {
@@ -252,12 +307,16 @@ function worksheetSegment(block, lines, notation, hasHours, segmentIndex, segmen
       });
     }
   }
-  left.push(...lines.map((line) => transcriptLine(line, notation)));
+  lines.forEach((line) => {
+    line.minuteMarkersBefore?.forEach((minute) => left.push(minuteDivider(minute)));
+    left.push(transcriptLine(line, notation));
+  });
 
   return {
     unbreakable: true,
     margin: [0, 0, 0, segmentIndex === segmentCount - 1 ? 7 : 0],
     table: {
+      dontBreakRows: true,
       widths: ['*', NOTES_COLUMN_WIDTH],
       heights: [height],
       body: [[{ stack: left }, writingRules(height - 16)]],
@@ -347,9 +406,25 @@ export function pdfFilename(title) {
 
 export function estimatePdfPageCount(blocks) {
   if (!Array.isArray(blocks) || !blocks.length) return 1;
-  const transcriptEndMs = Math.max(0, Number(blocks.at(-1)?.endMs) || 0);
-  const targetDurationMs = TARGET_MINUTES_PER_PAGE * 60_000;
-  return 1 + Math.max(1, Math.ceil(transcriptEndMs / targetDurationMs));
+  const segments = prepareTranscriptSegments(blocks);
+  if (!segments.length) return 1;
+  let pageCount = 2;
+  let usedHeight = 0;
+
+  segments.forEach(({ block, lines, segmentIndex, segmentCount }) => {
+    const height = Math.max(
+      70,
+      blockHeightPoints(block) / segmentCount,
+      estimatedChunkHeight(lines, segmentIndex === 0),
+    ) + 16 + (segmentIndex === segmentCount - 1 ? 7 : 0);
+    if (usedHeight > 0 && usedHeight + height > PRINTABLE_PAGE_HEIGHT) {
+      pageCount += 1;
+      usedHeight = 0;
+    }
+    usedHeight += height;
+  });
+
+  return pageCount;
 }
 
 export function createPdfDefinition({ title, blocks, notation }) {
@@ -386,12 +461,8 @@ export function createPdfDefinition({ title, blocks, notation }) {
     { text: '', pageBreak: 'after' },
   ];
 
-  paginateTranscriptBlocks(safeBlocks).forEach((segments, pageIndex) => {
-    segments.forEach(({ block, lines, segmentIndex, segmentCount }, segmentOnPage) => {
-      const worksheet = worksheetSegment(block, lines, notation, hasHours, segmentIndex, segmentCount);
-      if (pageIndex > 0 && segmentOnPage === 0) worksheet.pageBreak = 'before';
-      content.push(worksheet);
-    });
+  prepareTranscriptSegments(safeBlocks).forEach(({ block, lines, segmentIndex, segmentCount }) => {
+    content.push(worksheetSegment(block, lines, notation, hasHours, segmentIndex, segmentCount));
   });
 
   return {

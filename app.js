@@ -2,7 +2,7 @@ import { formatTimestamp, parseSrt, structureCues, titleFromFilename } from './s
 import { tokenizeTranscript } from './audio-events.js?v=__BUILD_VERSION__';
 import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js?v=__BUILD_VERSION__';
 import { downloadWorksheetPdf, estimatePdfPageCount } from './pdf-generator.js?v=__BUILD_VERSION__';
-import { layoutTranscript } from './transcript-layout.js?v=__BUILD_VERSION__';
+import { layoutTranscript, markElapsedMinutes } from './transcript-layout.js?v=__BUILD_VERSION__';
 
 const elements = {
   blocks: document.querySelector('#blocks'),
@@ -124,10 +124,20 @@ function makeAudioEventMark(event) {
   return mark;
 }
 
-function appendTranscript(paragraph, text) {
+function appendMinuteMarker(paragraph, minute) {
+  const marker = makeElement('span', 'minute-marker');
+  marker.setAttribute('role', 'separator');
+  marker.setAttribute('aria-label', `${minute} ${minute === 1 ? 'minute' : 'minutes'} elapsed`);
+  marker.append(makeElement('span', 'minute-marker__label', `${minute} MIN`));
+  paragraph.append(marker);
+}
+
+function appendTranscript(paragraph, text, block, startingMinute) {
   const layout = layoutTranscript(text);
+  const marked = markElapsedMinutes(layout.lines, block.startMs, block.endMs, startingMinute);
   paragraph.classList.toggle('transcript-events-only', layout.eventsOnly);
-  layout.lines.forEach((transcriptLine) => {
+  marked.lines.forEach((transcriptLine) => {
+    transcriptLine.minuteMarkersBefore.forEach((minute) => appendMinuteMarker(paragraph, minute));
     if (transcriptLine.thoughtBreakBefore && paragraph.childNodes.length) {
       paragraph.append(makeElement('span', 'thought-break'));
     }
@@ -138,6 +148,7 @@ function appendTranscript(paragraph, text) {
     });
     paragraph.append(line);
   });
+  return marked.nextMinute;
 }
 
 function updateNotationDisplay() {
@@ -221,6 +232,7 @@ function render() {
 
   elements.pauseThreshold.value = String(threshold / 1000);
   elements.blocks.replaceChildren();
+  let nextMinute = 1;
   blocks.forEach((block, index) => {
     const section = makeElement('section', 'worksheet-block');
     section.style.setProperty('--block-height', `${blockHeightMm(block)}mm`);
@@ -229,7 +241,7 @@ function render() {
     transcript.append(makeElement('time', '', formatTimestamp(block.startMs, hasHours)));
     if (block.speaker) transcript.append(makeElement('h3', '', block.speaker));
     const paragraph = makeElement('p');
-    appendTranscript(paragraph, block.text);
+    nextMinute = appendTranscript(paragraph, block.text, block, nextMinute);
     transcript.append(paragraph);
 
     const notes = makeElement('aside', 'formula-notes');

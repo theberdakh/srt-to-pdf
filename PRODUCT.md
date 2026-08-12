@@ -33,6 +33,7 @@ The user chooses an SRT, sets the silences that start a new line and a new block
 - Print the special title on a full ruled front page before the transcript.
 - Print the four-sign notation map beside the title on the front page.
 - Print each start time above its subtitle and give the wider right-hand lane to formula notes.
+- Mark every elapsed video minute inside the transcript without tying time to page breaks.
 - Separate blocks with space rather than visible horizontal rules.
 - Use the special title on the front page and as the browser print title, without repeating it on transcript pages.
 - Export through native browser print-to-PDF.
@@ -44,6 +45,7 @@ The user chooses an SRT, sets the silences that start a new line and a new block
 - The page should never tell the analyst what the joke means.
 - Silence is the only automatic signal that creates worksheet blocks; punctuation and breath length affect line rhythm only.
 - Printed space should follow time while retaining a practical minimum.
+- PDF pages should fill naturally from their content; elapsed time never creates an empty page.
 - Keep the complete worksheet visible before export.
 - Load immediately and keep private files on the device.
 
