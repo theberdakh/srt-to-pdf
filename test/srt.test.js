@@ -126,6 +126,17 @@ test('removes standalone censor cues without leaving empty blocks', () => {
   }]);
 });
 
+test('removes a stray standalone Thai crowd-cheer cue from Russian subtitles', () => {
+  const paragraphs = structureCues([
+    { startMs: 0, endMs: 1_000, speaker: '', text: 'Первая мысль.', index: 1 },
+    { startMs: 1_100, endMs: 1_400, speaker: '', text: 'เฮ', index: 2 },
+    { startMs: 1_500, endMs: 2_500, speaker: '', text: 'Вторая мысль.', index: 3 },
+  ]);
+
+  assert.equal(paragraphs.length, 1);
+  assert.equal(paragraphs[0].text, 'Первая мысль.\nВторая мысль.');
+});
+
 test('does not mistake a sentence containing a colon for a speaker label', () => {
   const cues = parseSrt(`423
 00:25:24,820 --> 00:25:28,940
@@ -148,6 +159,15 @@ test('does not mistake a sentence containing a colon for a speaker label', () =>
     paragraphs[0].text,
     'Что-то не живу я такой с мыслю: «Господи, как же охуительно».\n\nЯ вот женился еще недавно, кстати.',
   );
+});
+
+test('does not mistake a lowercase Russian word before a colon for a speaker', () => {
+  const [cue] = parseSrt(`1
+00:00:01,000 --> 00:00:03,000
+говоришь: Слушайте, а можно иначе?`);
+
+  assert.equal(cue.speaker, '');
+  assert.equal(cue.text, 'говоришь: Слушайте, а можно иначе?');
 });
 
 test('still recognizes common explicit speaker label formats', () => {

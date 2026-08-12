@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { countPdfPages } from '../pagination.js';
+import { A4_CONTENT_HEIGHT_MM, countPdfPages } from '../pagination.js';
+
+test('reserves a dedicated bottom margin band for the repeated print legend', () => {
+  assert.equal(A4_CONTENT_HEIGHT_MM, 252);
+});
 
 test('includes the cover and packs worksheet blocks onto A4 pages', () => {
   assert.equal(countPdfPages([100, 100, 70]), 3);

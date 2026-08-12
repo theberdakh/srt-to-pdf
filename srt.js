@@ -4,6 +4,7 @@ const TIMING_LINE = /^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d
 const BRACKETED_SPEAKER_LINE = /^\[([^\]]{1,40})\][ \t]+(.+)$/u;
 const COLON_SPEAKER_LINE = /^([^:]{1,40}):[ \t]+(.+)$/u;
 const VTT_SPEAKER = /^<v(?:\.[^ >]+)*\s+([^>]+)>(.*)$/i;
+const GENERIC_SPEAKER_LABEL = /^(?:narrator|host|comedian|announcer|interviewer|interviewee|audience member|speaker\s*\d*|man\s*\d*|woman\s*\d*|male voice|female voice)$/iu;
 
 function timestampToMs(parts) {
   const [hours, minutes, seconds, milliseconds] = parts.map(Number);
@@ -52,11 +53,11 @@ function extractSpeaker(text) {
   const hasSentencePunctuation = /[.!?…«»]/u.test(speaker);
   const isAllUppercase = speaker === speaker.toUpperCase() && /\p{L}/u.test(speaker);
   const isTitleCase = words.every((word) => /^(?:\p{Lu}|\p{N})/u.test(word));
-  const isSimpleSingleWord = words.length === 1 && /^[\p{L}\p{N}_'’-]+$/u.test(speaker);
+  const isGenericSpeakerLabel = GENERIC_SPEAKER_LABEL.test(speaker);
   const looksLikeSpeaker =
     words.length <= 4 &&
     !hasSentencePunctuation &&
-    (isAllUppercase || isTitleCase || isSimpleSingleWord);
+    (isAllUppercase || isTitleCase || isGenericSpeakerLabel);
 
   return looksLikeSpeaker
     ? { speaker, text: colonMatch[2].trim() }
@@ -120,6 +121,10 @@ function isOrphanCensorCue(text) {
   return /^(?:[_–—-]{2,}|\[\s*[_–—-]+\s*\])$/u.test(text.trim());
 }
 
+function isStandaloneCheerCue(text) {
+  return /^เฮ้?[.!…]*$/u.test(text.trim());
+}
+
 function wordCount(text) {
   return text.trim().split(/\s+/u).filter(Boolean).length;
 }
@@ -150,7 +155,7 @@ export function structureCues(cues, pauseThresholdMs = 2500, lineThresholdMs = 8
   const paragraphs = [];
 
   for (const cue of cues) {
-    if (isOrphanCensorCue(cue.text)) continue;
+    if (isOrphanCensorCue(cue.text) || isStandaloneCheerCue(cue.text)) continue;
     const current = paragraphs.at(-1);
     const gapMs = current ? Math.max(0, cue.startMs - current.endMs) : 0;
     const meaningfulPause = current && gapMs >= threshold;

@@ -1,4 +1,4 @@
-export const A4_CONTENT_HEIGHT_MM = 262;
+export const A4_CONTENT_HEIGHT_MM = 252;
 
 export function countPdfPages(blockHeightsMm, pageHeightMm = A4_CONTENT_HEIGHT_MM, coverPages = 1) {
   if (!Number.isFinite(pageHeightMm) || pageHeightMm <= 0) {

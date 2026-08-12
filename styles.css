@@ -226,6 +226,12 @@ a { outline: none; }
 
 .button--ink:hover:not(:disabled) { background: #35352f; }
 
+.button--ink[aria-busy="true"] {
+  color: white;
+  background: #35352f;
+  cursor: wait;
+}
+
 .text-button {
   padding: 3px 2px;
   color: var(--muted);
@@ -936,7 +942,7 @@ a { outline: none; }
 
 @page {
   size: A4;
-  margin: 17mm 18mm 18mm;
+  margin: 17mm 18mm 28mm;
 }
 
 @media print {
@@ -969,7 +975,7 @@ a { outline: none; }
   }
 
   .cover-page {
-    height: 262mm;
+    height: 252mm;
     min-height: 0;
     break-after: page;
   }
@@ -1003,11 +1009,13 @@ a { outline: none; }
 
   .notation-legend {
     position: fixed;
+    z-index: 1;
     right: 0;
-    bottom: -12mm;
+    bottom: -14mm;
     left: 0;
     gap: 4mm;
-    padding-top: 3mm;
+    min-height: 6mm;
+    padding-top: 1.5mm;
     background: white;
     border-top: 0.2mm solid var(--line);
     font-size: 7pt;

@@ -85,9 +85,9 @@ Subtitle Folio prints evidence and leaves interpretation to the analyst. The int
 
 Before upload, the title and file choice lead. After upload, the introduction disappears and a 270px settings rail sits beside the paper preview. The settings rail contains a generous wrapping title editor, line and block silence thresholds, a collapsed personal-notation editor, and export.
 
-The printed document begins with the special title and a full ruled page. The title does not repeat on transcript pages. Each worksheet block has two regions: the transcript with its start time directly above it, and a wider ruled formula/notes lane. Blocks are separated by generous writing space rather than visible horizontal rules. The block has a 28mm base height plus 0.65mm per second of content, capped at 76mm; text can expand it further.
+The printed document begins with the special title and a full ruled page. The title does not repeat on transcript pages. Each worksheet block has two regions: the transcript with its start time directly above it, and a wider ruled formula/notes lane. Blocks are separated by writing space rather than visible horizontal rules. For the two-minute page-density target, a block has a 16mm base height plus 0.35mm per second of content, capped at 48mm; text expands it whenever needed.
 
-At phone widths the transcript stays first, while the ruled notes move beneath it. Print restores the right-hand lane at 70mm, uses A4 margins, and keeps each block together when possible.
+At phone widths the transcript stays first, while the ruled notes move beneath it. The browser-side PDF generator restores the right-hand notes lane, uses fixed A4 geometry, splits unusually long blocks into safe continuations, and keeps ordinary blocks together when possible.
 
 ## Typography
 
@@ -101,11 +101,13 @@ The palette is warm paper, graphite controls, black ink, and one proof-red annot
 
 - **Title editor:** a tall, wrapping text area for comfortably editing long special titles.
 - **Personal notation:** users can assign up to three characters to music, applause, and laughter. Those signs print inside a thin ring so even punctuation cannot be confused with dialogue. Censorship remains an eight-character writing line. Defaults are `#`, `$`, `)`, and `________`; choices persist only in local browser storage.
-- **Notation legend:** the active signs and meanings form a quiet footer repeated on every printed page.
+- **Notation map:** the active signs and meanings appear once beside the title on the front page. Transcript pages use that space for a compact title header and keep only page numbering in the footer.
+- **Direct PDF export:** one click creates and downloads the A4 worksheet entirely in the browser. The file uses embedded fonts, selectable text, fixed page margins, and a footer owned by the document rather than the browser, so no local URL or browser header is printed.
+- **Page density:** transcript pagination targets roughly two minutes of material per page while preserving readable type and allowing unusually dense passages to continue safely.
 - **Transcript rhythm:** a shorter silence threshold, sentence punctuation, performance marks, and a 7–11-word breath length create readable lines sized for the transcript column. Stronger boundaries add visible thought-group spacing. Only the longer silence threshold, defaulting to 2.5 seconds, creates a new block and writing area.
 - **After-event line:** speech following a music, applause, or laughter mark begins on a modest paragraph indent, making the event boundary immediately scannable without shifting ordinary breath lines. Censorship stays inline as a word replacement.
-- **Front page:** the special title, its compact four-sign notation map, and a full page of writing rules.
-- **Worksheet block:** start time above the transcript and a wide right-hand ruled notes lane, without an outer separator.
+- **Front page:** the special title with transcript duration in minutes, its compact four-sign notation map, and a bounded writing area that leaves a clean lower margin and never spills onto the transcript page.
+- **Worksheet block:** start time above the transcript and a wide right-hand ruled notes lane that always spans the complete transcript block. The center divider stops for a small clean gap between completed blocks, but remains continuous through internal continuations of one oversized block.
 - **Paper preview:** one continuous document whose browser geometry matches the natural print flow.
 
 ## Rules
@@ -114,4 +116,4 @@ The palette is warm paper, graphite controls, black ink, and one proof-red annot
 - Do not split on speaker, character count, or elapsed duration; silence alone creates a new block.
 - Keep the notes lane visually quieter than the transcript.
 - Keep personal notation inline and subordinate to speech; never let bracketed descriptions occupy transcript lines when the user's compact mark can carry them.
-- Preserve keyboard focus, local processing, responsive reading, and native print behavior.
+- Preserve keyboard focus, local processing, responsive reading, and direct browser-side PDF export without uploads or external font requests.

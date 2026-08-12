@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "python3 -m http.server 4173",
-    "test": "node --test"
+    "test": "node --test",
+    "pdf:fixture": "node scripts/render-pdf-fixture.mjs"
+  },
+  "dependencies": {
+    "pdfmake": "0.3.11"
   }
 }

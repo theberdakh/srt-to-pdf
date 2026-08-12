@@ -26,14 +26,18 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test
 
       - name: Assemble static site
         run: |
           mkdir -p _site
-          cp index.html app.js audio-events.js event-styles.html event-styles.js event-styles.css notation.js pagination.js srt.js styles.css _site/
+          cp index.html app.js audio-events.js event-styles.html event-styles.js event-styles.css notation.js pagination.js pdf-generator.js srt.js styles.css transcript-layout.js _site/
           cp -R assets _site/assets
+          cp -R vendor _site/vendor
           touch _site/.nojekyll
 
       - name: Configure GitHub Pages

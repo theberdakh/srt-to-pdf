@@ -12,7 +12,7 @@
     <!--
       THESIS: A stand-up transcript needs only speech, silence, and room for the analyst's own thinking.
       OWN-WORLD: Warm paper, black ink, one proof-red action, and fine pencil rules. A fully ruled front page precedes a transcript with an unprescribed right-hand notes lane.
-      STORY: Choose an SRT, set the silence that begins a new thought, review the cover and transcript, and print.
+      STORY: Choose an SRT, set the silence that begins a new thought, review the cover and transcript, and download the PDF.
       FIRST VIEWPORT: File choice leads before upload; afterward the worksheet immediately replaces the introduction.
       FORM: Distilled editorial worksheet; ruled cover first, then time and transcript left with formula notes right.
       FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
@@ -88,9 +88,9 @@
           <p class="setting-note">Short pauses create lines inside one block. Long pauses create a new block and writing area.</p>
           <div id="error-message" class="error-message" role="alert" hidden></div>
 
-          <button id="print-button" class="button button--ink" type="button" disabled>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 7V3h10v4M5 14H3V8h14v6h-2M5 11h10v6H5z" /></svg>
-            Save as PDF
+          <button id="download-button" class="button button--ink" type="button" disabled>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4L6 9M3 16h14" /></svg>
+            <span id="download-label">Download PDF</span>
           </button>
           <p id="page-estimate" class="page-estimate" aria-live="polite" hidden>
             <span>Estimated PDF length</span>
@@ -132,6 +132,8 @@
     </main>
 
     <footer class="site-footer"><span>Private by design.</span><span>Fast by default.</span></footer>
+    <script src="./vendor/pdfmake.min.js"></script>
+    <script src="./vendor/vfs_fonts.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

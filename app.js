@@ -1,13 +1,16 @@
 import { formatTimestamp, parseSrt, structureCues, titleFromFilename } from './srt.js';
-import { countPdfPages } from './pagination.js';
-import { eventEndsTranscriptLine, tokenizeTranscript } from './audio-events.js';
+import { tokenizeTranscript } from './audio-events.js';
 import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js';
+import { downloadWorksheetPdf, estimatePdfPageCount } from './pdf-generator.js';
+import { layoutTranscript } from './transcript-layout.js';
 
 const elements = {
   blocks: document.querySelector('#blocks'),
   body: document.body,
   documentContent: document.querySelector('#document-content'),
   documentTitle: document.querySelector('#document-title'),
+  downloadButton: document.querySelector('#download-button'),
+  downloadLabel: document.querySelector('#download-label'),
   dropZone: document.querySelector('#drop-zone'),
   emptyState: document.querySelector('#empty-state'),
   error: document.querySelector('#error-message'),
@@ -21,7 +24,6 @@ const elements = {
   pauseThreshold: document.querySelector('#pause-threshold'),
   pageEstimate: document.querySelector('#page-estimate'),
   pageTotal: document.querySelector('#page-total'),
-  printButton: document.querySelector('#print-button'),
   printTitle: document.querySelector('#print-title'),
   replaceButton: document.querySelector('#replace-button'),
   resetNotation: document.querySelector('#reset-notation'),
@@ -30,6 +32,7 @@ const elements = {
 };
 
 const state = {
+  blocks: [],
   cues: [],
   filename: '',
   notation: loadNotation(window.localStorage),
@@ -122,47 +125,19 @@ function makeAudioEventMark(event) {
 }
 
 function appendTranscript(paragraph, text) {
-  const tokens = tokenizeTranscript(text);
-  paragraph.classList.toggle('transcript-events-only', tokens.length > 0 && tokens.every(({ type }) => type === 'event'));
-  let line = makeElement('span', 'transcript-line');
-  let indentNextSpeechLine = false;
-  let eventClusterEndsLine = false;
-
-  const finishLine = (addThoughtBreak = false) => {
-    if (line.childNodes.length) paragraph.append(line);
-    if (addThoughtBreak && paragraph.childNodes.length) paragraph.append(makeElement('span', 'thought-break'));
-    line = makeElement('span', 'transcript-line');
-  };
-
-  tokens.forEach((token, tokenIndex) => {
-    if (token.type === 'event') {
-      line.append(makeAudioEventMark(token));
-      eventClusterEndsLine ||= eventEndsTranscriptLine(token.kind);
-      if (tokens[tokenIndex + 1]?.type !== 'event') {
-        if (eventClusterEndsLine) {
-          finishLine();
-          indentNextSpeechLine = true;
-        }
-        eventClusterEndsLine = false;
-      }
-      return;
+  const layout = layoutTranscript(text);
+  paragraph.classList.toggle('transcript-events-only', layout.eventsOnly);
+  layout.lines.forEach((transcriptLine) => {
+    if (transcriptLine.thoughtBreakBefore && paragraph.childNodes.length) {
+      paragraph.append(makeElement('span', 'thought-break'));
     }
-
-    token.value.split(/(\n\n|\n)/u).forEach((part) => {
-      if (part === '\n' || part === '\n\n') {
-        finishLine(part === '\n\n');
-        return;
-      }
-      if (!part) return;
-      if (!line.childNodes.length && indentNextSpeechLine) {
-        line.classList.add('transcript-line--after-event');
-        indentNextSpeechLine = false;
-      }
-      line.append(line.childNodes.length ? part : part.replace(/^\s+/u, ''));
+    const line = makeElement('span', 'transcript-line');
+    if (transcriptLine.indent) line.classList.add('transcript-line--after-event');
+    transcriptLine.runs.forEach((run) => {
+      line.append(run.type === 'event' ? makeAudioEventMark(run) : run.value);
     });
+    paragraph.append(line);
   });
-
-  finishLine();
 }
 
 function updateNotationDisplay() {
@@ -225,21 +200,8 @@ function blockHeightMm(block) {
   return Math.min(76, Math.round(28 + durationSeconds * 0.65));
 }
 
-function measurePrintBlockHeights() {
-  const measurement = makeElement('div', 'pdf-measure');
-  measurement.setAttribute('aria-hidden', 'true');
-  Array.from(elements.blocks.children).forEach((block) => measurement.append(block.cloneNode(true)));
-  elements.body.append(measurement);
-  const millimetresPerCssPixel = 25.4 / 96;
-  const heights = Array.from(measurement.children, (block) => (
-    block.getBoundingClientRect().height * millimetresPerCssPixel
-  ));
-  measurement.remove();
-  return heights;
-}
-
 function updatePageEstimate() {
-  const pageCount = countPdfPages(measurePrintBlockHeights());
+  const pageCount = estimatePdfPageCount(state.blocks);
   elements.pageTotal.textContent = `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`;
 }
 
@@ -249,6 +211,7 @@ function render() {
   const lineThreshold = lineThresholdMs(threshold);
   const blocks = structureCues(state.cues, threshold, lineThreshold)
     .filter((block) => tokenizeTranscript(block.text).length > 0);
+  state.blocks = blocks;
   const duration = state.cues.at(-1).endMs;
   const hasHours = duration >= 3_600_000;
 
@@ -285,7 +248,7 @@ function activateDocument(filename, source) {
     clearError();
     elements.documentTitle.value = titleFromFilename(filename);
     elements.documentTitle.disabled = false;
-    elements.printButton.disabled = false;
+    elements.downloadButton.disabled = false;
     elements.pageEstimate.hidden = false;
     elements.replaceButton.hidden = false;
     elements.fileStatus.textContent = filename;
@@ -321,7 +284,25 @@ elements.uploadButton.addEventListener('click', () => elements.fileInput.click()
 elements.replaceButton.addEventListener('click', () => elements.fileInput.click());
 elements.fileInput.addEventListener('change', () => handleFile(elements.fileInput.files?.[0]));
 elements.sampleButton.addEventListener('click', () => activateDocument('sample-standup.srt', sampleSrt));
-elements.printButton.addEventListener('click', () => window.print());
+elements.downloadButton.addEventListener('click', async () => {
+  clearError();
+  elements.downloadButton.disabled = true;
+  elements.downloadButton.setAttribute('aria-busy', 'true');
+  elements.downloadLabel.textContent = 'Building PDF…';
+  try {
+    await downloadWorksheetPdf({
+      title: elements.documentTitle.value.trim() || 'Untitled transcript',
+      blocks: state.blocks,
+      notation: state.notation,
+    });
+  } catch (error) {
+    showError(error instanceof Error ? error.message : 'The PDF could not be created. Try again.');
+  } finally {
+    elements.downloadButton.disabled = false;
+    elements.downloadButton.removeAttribute('aria-busy');
+    elements.downloadLabel.textContent = 'Download PDF';
+  }
+});
 elements.documentTitle.addEventListener('input', render);
 elements.pauseThreshold.addEventListener('change', render);
 elements.lineThreshold.addEventListener('change', render);
@@ -347,9 +328,6 @@ for (const eventName of ['dragleave', 'drop']) {
 }
 
 window.addEventListener('drop', (event) => handleFile(event.dataTransfer?.files?.[0]));
-window.addEventListener('beforeprint', () => {
-  document.querySelectorAll('.cover-lines, .formula-notes').forEach(balanceRules);
-});
 document.fonts?.ready.then(() => {
   if (state.cues.length) updatePageEstimate();
 });
