@@ -696,7 +696,7 @@ a { outline: none; }
 .minute-marker::after {
   height: 1px;
   flex: 1;
-  background: color-mix(in srgb, var(--accent) 36%, var(--paper));
+  background: var(--soft-line);
   content: "";
 }
 

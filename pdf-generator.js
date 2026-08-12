@@ -262,7 +262,8 @@ function writingRules(height) {
 
 function minuteDivider(minute) {
   const dividerRule = () => ({
-    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 68, y2: 0, lineWidth: 0.45, lineColor: COLORS.accent }],
+    canvas: [{ type: 'line', x1: 0, y1: 0, x2: 95, y2: 0, lineWidth: 0.45, lineColor: COLORS.lineSoft }],
+    width: '*',
     margin: [0, 4.2, 0, 0],
   });
   return {
