@@ -83,7 +83,7 @@ Subtitle Folio prints evidence and leaves interpretation to the analyst. The int
 
 ## Layout
 
-Before upload, the title and file choice lead. After upload, the introduction disappears and a 270px settings rail sits beside the paper preview. The settings rail contains only title, silence threshold, and export.
+Before upload, the title and file choice lead. After upload, the introduction disappears and a 270px settings rail sits beside the paper preview. The settings rail contains a generous wrapping title editor, line and block silence thresholds, a collapsed personal-notation editor, and export.
 
 The printed document begins with the special title and a full ruled page. The title does not repeat on transcript pages. Each worksheet block has two regions: the transcript with its start time directly above it, and a wider ruled formula/notes lane. Blocks are separated by generous writing space rather than visible horizontal rules. The block has a 28mm base height plus 0.65mm per second of content, capped at 76mm; text can expand it further.
 
@@ -99,14 +99,19 @@ The palette is warm paper, graphite controls, black ink, and one proof-red annot
 
 ## Components
 
-- **Silence threshold:** a numeric seconds field from 0.5 to 15, defaulting to 2.5.
-- **Front page:** the special title followed by a full page of writing rules.
+- **Title editor:** a tall, wrapping text area for comfortably editing long special titles.
+- **Personal notation:** users can assign up to three characters to music, applause, and laughter. Those signs print inside a thin ring so even punctuation cannot be confused with dialogue. Censorship remains an eight-character writing line. Defaults are `#`, `$`, `)`, and `________`; choices persist only in local browser storage.
+- **Notation legend:** the active signs and meanings form a quiet footer repeated on every printed page.
+- **Transcript rhythm:** a shorter silence threshold, sentence punctuation, performance marks, and a 7–11-word breath length create readable lines sized for the transcript column. Stronger boundaries add visible thought-group spacing. Only the longer silence threshold, defaulting to 2.5 seconds, creates a new block and writing area.
+- **After-event line:** speech following a music, applause, or laughter mark begins on a modest paragraph indent, making the event boundary immediately scannable without shifting ordinary breath lines. Censorship stays inline as a word replacement.
+- **Front page:** the special title, its compact four-sign notation map, and a full page of writing rules.
 - **Worksheet block:** start time above the transcript and a wide right-hand ruled notes lane, without an outer separator.
 - **Paper preview:** one continuous document whose browser geometry matches the natural print flow.
 
 ## Rules
 
-- Do not print laugh symbols, joke classifications, analytical prompts, formulas, bit identities, or semantic guesses.
+- Do not add analytical laugh ratings, joke classifications, prompts, formulas, bit identities, or semantic guesses; audio-event marks only represent annotations already present in the SRT.
 - Do not split on speaker, character count, or elapsed duration; silence alone creates a new block.
 - Keep the notes lane visually quieter than the transcript.
+- Keep personal notation inline and subordinate to speech; never let bracketed descriptions occupy transcript lines when the user's compact mark can carry them.
 - Preserve keyboard focus, local processing, responsive reading, and native print behavior.

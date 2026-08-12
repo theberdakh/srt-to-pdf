@@ -53,7 +53,15 @@
 
           <label class="field">
             <span>Title</span>
-            <input id="document-title" type="text" value="Untitled transcript" maxlength="100" disabled />
+            <textarea id="document-title" rows="4" maxlength="200" disabled>Untitled transcript</textarea>
+          </label>
+
+          <label class="field">
+            <span>Start a new line after</span>
+            <span class="number-field">
+              <input id="line-threshold" type="number" value="0.8" min="0.1" max="2.4" step="0.1" inputmode="decimal" />
+              <small>seconds of silence</small>
+            </span>
           </label>
 
           <label class="field">
@@ -64,7 +72,20 @@
             </span>
           </label>
 
-          <p class="setting-note">Every block gets a minimum writing area. Longer moments get more space automatically.</p>
+          <details class="notation-settings">
+            <summary>
+              <span>Notation signs</span>
+              <output id="notation-summary" aria-label="Current notation signs"></output>
+            </summary>
+            <p>Music, applause, and laughter print inside thin rings. Censored speech stays a writing line. Saved only in this browser.</p>
+            <div id="notation-fields" class="notation-fields"></div>
+            <div class="notation-actions">
+              <button id="reset-notation" class="text-button" type="button">Reset defaults</button>
+              <a class="text-button" href="./event-styles.html">Compare placement</a>
+            </div>
+          </details>
+
+          <p class="setting-note">Short pauses create lines inside one block. Long pauses create a new block and writing area.</p>
           <div id="error-message" class="error-message" role="alert" hidden></div>
 
           <button id="print-button" class="button button--ink" type="button" disabled>
@@ -92,13 +113,18 @@
 
             <div id="document-content" class="document-content" hidden>
               <section class="cover-page" aria-label="Front notes page">
-                <h2 id="print-title">Untitled transcript</h2>
+                <div class="cover-heading">
+                  <h2 id="print-title">Untitled transcript</h2>
+                  <aside id="cover-notation-legend" class="cover-notation-legend" aria-label="Notation map"></aside>
+                </div>
                 <div class="cover-lines" aria-hidden="true"></div>
               </section>
 
               <section class="transcript-document">
                 <div id="blocks" class="blocks"></div>
               </section>
+
+              <footer id="notation-legend" class="notation-legend" aria-label="Notation legend"></footer>
             </div>
           </article>
         </section>
