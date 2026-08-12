@@ -1,3 +1,5 @@
+import { isKnownAudioEvent } from './audio-events.js';
+
 const TIMING_LINE = /^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})(?:\s+.*)?$/;
 const BRACKETED_SPEAKER_LINE = /^\[([^\]]{1,40})\][ \t]+(.+)$/u;
 const COLON_SPEAKER_LINE = /^([^:]{1,40}):[ \t]+(.+)$/u;
@@ -38,6 +40,7 @@ function extractSpeaker(text) {
 
   const bracketedMatch = text.match(BRACKETED_SPEAKER_LINE);
   if (bracketedMatch) {
+    if (isKnownAudioEvent(bracketedMatch[1])) return { speaker: '', text };
     return { speaker: bracketedMatch[1].trim(), text: bracketedMatch[2].trim() };
   }
 
@@ -113,11 +116,41 @@ function isStageDirection(text) {
   return /^(?:\[[^\]]+\]|\([^\)]+\))$/.test(text.trim());
 }
 
-export function structureCues(cues, pauseThresholdMs = 2500) {
+function isOrphanCensorCue(text) {
+  return /^(?:[_–—-]{2,}|\[\s*[_–—-]+\s*\])$/u.test(text.trim());
+}
+
+function wordCount(text) {
+  return text.trim().split(/\s+/u).filter(Boolean).length;
+}
+
+function lineSeparator(currentText, nextText, gapMs, lineThresholdMs) {
+  const currentLine = currentText.split('\n').at(-1) ?? '';
+  const currentThought = currentText.split('\n\n').at(-1) ?? '';
+  const lineWords = wordCount(currentLine);
+  const thoughtWords = wordCount(currentThought);
+  const nextWords = wordCount(nextText);
+  const sentenceEnded = /[.!?…][”’"'»\)\]]*$/u.test(currentText.trim());
+  const pauseBreak = gapMs >= lineThresholdMs;
+  const breathBreak = lineWords > 0 && lineWords + nextWords > 11;
+  const strongPause = gapMs >= Math.max(lineThresholdMs + 400, lineThresholdMs * 1.6);
+  const thoughtBreak = strongPause || thoughtWords >= 20 || (sentenceEnded && thoughtWords >= 12);
+
+  if (thoughtBreak) return '\n\n';
+  if (pauseBreak || sentenceEnded || breathBreak) return '\n';
+  return ' ';
+}
+
+export function structureCues(cues, pauseThresholdMs = 2500, lineThresholdMs = 800) {
   const threshold = Math.max(500, Number(pauseThresholdMs) || 2500);
+  const lineThreshold = Math.min(
+    Math.max(100, threshold - 100),
+    Math.max(100, Number(lineThresholdMs) || 800),
+  );
   const paragraphs = [];
 
   for (const cue of cues) {
+    if (isOrphanCensorCue(cue.text)) continue;
     const current = paragraphs.at(-1);
     const gapMs = current ? Math.max(0, cue.startMs - current.endMs) : 0;
     const meaningfulPause = current && gapMs >= threshold;
@@ -136,9 +169,13 @@ export function structureCues(cues, pauseThresholdMs = 2500) {
     }
 
     const speakerChanged = cue.speaker && current.speaker && cue.speaker !== current.speaker;
+    const separator = lineSeparator(current.text, cue.text, gapMs, lineThreshold);
     if (speakerChanged) {
-      current.text = `${current.speaker}: ${current.text} ${cue.speaker}: ${cue.text}`;
+      current.text = `${current.speaker}: ${current.text}${separator}${cue.speaker}: ${cue.text}`;
       current.speaker = '';
+    } else if (separator !== ' ') {
+      current.text = `${current.text}${separator}${cue.text}`;
+      if (!current.speaker && cue.speaker) current.speaker = cue.speaker;
     } else {
       current.text = joinCueText(current.text, cue.text);
       if (!current.speaker && cue.speaker) current.speaker = cue.speaker;

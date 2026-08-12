@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 
 import { formatPause, formatTimestamp, parseSrt, structureCues, titleFromFilename } from '../srt.js';
 
+const wordCountForTest = (text) => text.trim().split(/\s+/u).filter(Boolean).length;
+
 const basicSrt = `1
 00:00:01,000 --> 00:00:03,500
 Hello there.
@@ -39,7 +41,7 @@ test('merges nearby cues and splits only on the chosen pause', () => {
   const paragraphs = structureCues(parseSrt(basicSrt), 2500);
   assert.equal(paragraphs.length, 2);
   assert.equal(paragraphs[0].cueCount, 2);
-  assert.equal(paragraphs[0].text, 'Hello there. This is the next sentence.');
+  assert.equal(paragraphs[0].text, 'Hello there.\nThis is the next sentence.');
   assert.equal(paragraphs[1].speaker, 'MAYA');
   assert.equal(paragraphs[1].gapBeforeMs, 6000);
 });
@@ -55,6 +57,27 @@ test('uses the selected silence threshold to split blocks', () => {
   assert.equal(structureCues(cues, 5000).length, 1);
 });
 
+test('uses a shorter silence threshold for a new line inside the same block', () => {
+  const cues = [
+    { startMs: 0, endMs: 1000, speaker: '', text: 'First line.', index: 1 },
+    { startMs: 1700, endMs: 2500, speaker: '', text: 'Second line.', index: 2 },
+    { startMs: 5200, endMs: 6000, speaker: '', text: 'New block.', index: 3 },
+  ];
+
+  const paragraphs = structureCues(cues, 2500, 600);
+  assert.equal(paragraphs.length, 2);
+  assert.equal(paragraphs[0].text, 'First line.\nSecond line.');
+  assert.equal(paragraphs[1].text, 'New block.');
+});
+
+test('keeps the line threshold below the block threshold', () => {
+  const cues = [
+    { startMs: 0, endMs: 1000, speaker: '', text: 'First.', index: 1 },
+    { startMs: 2400, endMs: 3000, speaker: '', text: 'Second.', index: 2 },
+  ];
+  assert.equal(structureCues(cues, 1500, 5000)[0].text, 'First.\nSecond.');
+});
+
 test('keeps unlabeled continuation cues with the current speaker', () => {
   const cues = parseSrt(`1
 00:00:01,000 --> 00:00:03,000
@@ -68,6 +91,39 @@ and continues in the next cue.`);
   assert.equal(paragraphs.length, 1);
   assert.equal(paragraphs[0].speaker, 'EDITOR');
   assert.equal(paragraphs[0].text, 'This sentence begins here, and continues in the next cue.');
+});
+
+test('creates short breath lines and thought groups when captions have no useful pauses', () => {
+  const cues = [
+    { startMs: 0, endMs: 900, speaker: '', text: 'this is exciting i was a little', index: 1 },
+    { startMs: 920, endMs: 1800, speaker: '', text: 'too excited i panicked and got', index: 2 },
+    { startMs: 1820, endMs: 2700, speaker: '', text: 'this haircut what an insane thing', index: 3 },
+    { startMs: 2720, endMs: 3500, speaker: '', text: 'to do when you live in new york', index: 4 },
+    { startMs: 3520, endMs: 4300, speaker: '', text: 'but it was totally fine', index: 5 },
+    { startMs: 4320, endMs: 5000, speaker: '', text: 'until two days later.', index: 6 },
+  ];
+
+  const [paragraph] = structureCues(cues, 2500, 800);
+  const groups = paragraph.text.split('\n\n');
+  assert.ok(groups.length >= 2);
+  assert.ok(groups.every((group) => group.split('\n').every((line) => wordCountForTest(line) <= 11)));
+});
+
+test('removes standalone censor cues without leaving empty blocks', () => {
+  const cues = [
+    { startMs: 0, endMs: 500, speaker: '', text: '[ __ ]', index: 1 },
+    { startMs: 600, endMs: 1800, speaker: '', text: 'The spoken line begins here.', index: 2 },
+  ];
+
+  assert.deepEqual(structureCues(cues), [{
+    startMs: 600,
+    endMs: 1800,
+    gapBeforeMs: 0,
+    speaker: '',
+    text: 'The spoken line begins here.',
+    cueCount: 1,
+    kind: 'speech',
+  }]);
 });
 
 test('does not mistake a sentence containing a colon for a speaker label', () => {
@@ -90,7 +146,7 @@ test('does not mistake a sentence containing a colon for a speaker label', () =>
   assert.equal(paragraphs[0].speaker, '');
   assert.equal(
     paragraphs[0].text,
-    'Что-то не живу я такой с мыслю: «Господи, как же охуительно». Я вот женился еще недавно, кстати.',
+    'Что-то не живу я такой с мыслю: «Господи, как же охуительно».\n\nЯ вот женился еще недавно, кстати.',
   );
 });
 
@@ -113,6 +169,24 @@ John Smith: Welcome.
       { speaker: 'John Smith', text: 'Welcome.' },
       { speaker: 'Narrator', text: 'The story begins.' },
       { speaker: 'Interviewer', text: 'What happened next?' },
+    ],
+  );
+});
+
+test('keeps leading audio annotations in the transcript instead of treating them as speakers', () => {
+  const cues = parseSrt(`1
+00:00:01,000 --> 00:00:03,000
+[Laughter] That was not the plan.
+
+2
+00:00:04,000 --> 00:00:05,000
+[Door closes] We should go.`);
+
+  assert.deepEqual(
+    cues.map(({ speaker, text }) => ({ speaker, text })),
+    [
+      { speaker: '', text: '[Laughter] That was not the plan.' },
+      { speaker: '', text: '[Door closes] We should go.' },
     ],
   );
 });

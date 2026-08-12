@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Compare seven compact visual treatments for non-dialogue SRT annotations." />
+    <meta name="theme-color" content="#f2efe7" />
+    <title>Audio event notation study — Subtitle Folio</title>
+    <link rel="stylesheet" href="./event-styles.css" />
+  </head>
+  <body>
+    <!--
+      THESIS: Compare event notation on identical paper, never by memory or description.
+      OWN-WORLD: Subtitle Folio's warm stock, graphite ink, proof red, editorial serif, and pencil rules.
+      STORY: Read the same transcript seven times, compare only the audio-event treatment, then choose one.
+      FIRST VIEWPORT: A compact comparison toolbar leads directly into the first full A4 specimen.
+      FORM: Controlled seven-page specimen book inside the established worksheet world.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <header class="comparison-toolbar">
+      <a href="./">Back to editor</a>
+      <div>
+        <strong>Audio event notation study</strong>
+        <span>Seven treatments · identical transcript</span>
+      </div>
+      <button class="comparison-print" type="button" onclick="window.print()">Print comparison</button>
+      <details class="comparison-signs">
+        <summary>
+          <span>Personal signs</span>
+          <output id="comparison-notation-summary" aria-label="Current notation signs"></output>
+        </summary>
+        <p>Performance signs print inside thin rings; censored speech stays a writing line. Changes are shared with the editor.</p>
+        <div id="comparison-notation-fields" class="comparison-notation-fields"></div>
+        <button id="comparison-reset-notation" class="comparison-reset" type="button">Reset defaults</button>
+      </details>
+    </header>
+
+    <main id="comparison-pages" class="comparison-pages" aria-label="Seven audio event notation approaches"></main>
+
+    <script type="module" src="./event-styles.js"></script>
+  </body>
+</html>

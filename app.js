@@ -1,5 +1,7 @@
 import { formatTimestamp, parseSrt, structureCues, titleFromFilename } from './srt.js';
 import { countPdfPages } from './pagination.js';
+import { eventEndsTranscriptLine, tokenizeTranscript } from './audio-events.js';
+import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js';
 
 const elements = {
   blocks: document.querySelector('#blocks'),
@@ -11,17 +13,27 @@ const elements = {
   error: document.querySelector('#error-message'),
   fileInput: document.querySelector('#file-input'),
   fileStatus: document.querySelector('#file-status'),
+  lineThreshold: document.querySelector('#line-threshold'),
+  notationFields: document.querySelector('#notation-fields'),
+  coverNotationLegend: document.querySelector('#cover-notation-legend'),
+  notationLegend: document.querySelector('#notation-legend'),
+  notationSummary: document.querySelector('#notation-summary'),
   pauseThreshold: document.querySelector('#pause-threshold'),
   pageEstimate: document.querySelector('#page-estimate'),
   pageTotal: document.querySelector('#page-total'),
   printButton: document.querySelector('#print-button'),
   printTitle: document.querySelector('#print-title'),
   replaceButton: document.querySelector('#replace-button'),
+  resetNotation: document.querySelector('#reset-notation'),
   sampleButton: document.querySelector('#sample-button'),
   uploadButton: document.querySelector('#upload-button'),
 };
 
-const state = { cues: [], filename: '' };
+const state = {
+  cues: [],
+  filename: '',
+  notation: loadNotation(window.localStorage),
+};
 
 function balanceRules(element) {
   const height = element.getBoundingClientRect().height;
@@ -68,11 +80,28 @@ Longer moments receive more room for handwritten analysis.
 
 5
 00:00:25,000 --> 00:00:28,500
-The rest is yours to mark with a pen.`;
+The rest is yours to mark with a pen.
+
+6
+00:00:28,700 --> 00:00:29,400
+[Laughter]
+
+7
+00:00:30,300 --> 00:00:32,000
+[Music] [Applause] That was [ __ ] useful.`;
 
 function pauseThresholdMs() {
   const seconds = Number(elements.pauseThreshold.value);
   return Math.round(Math.min(15, Math.max(0.5, Number.isFinite(seconds) ? seconds : 2.5)) * 1000);
+}
+
+function lineThresholdMs(blockThresholdMs) {
+  const seconds = Number(elements.lineThreshold.value);
+  const maximum = Math.max(0.1, blockThresholdMs / 1000 - 0.1);
+  const normalized = Math.min(maximum, Math.max(0.1, Number.isFinite(seconds) ? seconds : 0.8));
+  elements.lineThreshold.max = String(maximum);
+  elements.lineThreshold.value = String(Math.round(normalized * 10) / 10);
+  return Math.round(normalized * 1000);
 }
 
 function makeElement(tag, className, text) {
@@ -80,6 +109,105 @@ function makeElement(tag, className, text) {
   if (className) element.className = className;
   if (text !== undefined) element.textContent = text;
   return element;
+}
+
+function makeAudioEventMark(event) {
+  const ringClass = event.kind === 'censored' ? '' : ' notation-mark';
+  const mark = makeElement('span', `audio-event audio-event--${event.kind}${ringClass}`);
+  mark.setAttribute('role', 'img');
+  mark.setAttribute('aria-label', event.label);
+  mark.title = event.label;
+  mark.textContent = state.notation[event.kind] ?? '';
+  return mark;
+}
+
+function appendTranscript(paragraph, text) {
+  const tokens = tokenizeTranscript(text);
+  paragraph.classList.toggle('transcript-events-only', tokens.length > 0 && tokens.every(({ type }) => type === 'event'));
+  let line = makeElement('span', 'transcript-line');
+  let indentNextSpeechLine = false;
+  let eventClusterEndsLine = false;
+
+  const finishLine = (addThoughtBreak = false) => {
+    if (line.childNodes.length) paragraph.append(line);
+    if (addThoughtBreak && paragraph.childNodes.length) paragraph.append(makeElement('span', 'thought-break'));
+    line = makeElement('span', 'transcript-line');
+  };
+
+  tokens.forEach((token, tokenIndex) => {
+    if (token.type === 'event') {
+      line.append(makeAudioEventMark(token));
+      eventClusterEndsLine ||= eventEndsTranscriptLine(token.kind);
+      if (tokens[tokenIndex + 1]?.type !== 'event') {
+        if (eventClusterEndsLine) {
+          finishLine();
+          indentNextSpeechLine = true;
+        }
+        eventClusterEndsLine = false;
+      }
+      return;
+    }
+
+    token.value.split(/(\n\n|\n)/u).forEach((part) => {
+      if (part === '\n' || part === '\n\n') {
+        finishLine(part === '\n\n');
+        return;
+      }
+      if (!part) return;
+      if (!line.childNodes.length && indentNextSpeechLine) {
+        line.classList.add('transcript-line--after-event');
+        indentNextSpeechLine = false;
+      }
+      line.append(line.childNodes.length ? part : part.replace(/^\s+/u, ''));
+    });
+  });
+
+  finishLine();
+}
+
+function updateNotationDisplay() {
+  elements.notationLegend.replaceChildren();
+  elements.coverNotationLegend.replaceChildren();
+  elements.notationSummary.replaceChildren();
+  NOTATION_FIELDS.forEach(({ kind, label }) => {
+    const sign = state.notation[kind];
+    if (!sign) return;
+    const isCensored = kind === 'censored';
+    const item = makeElement('span', 'notation-legend__item');
+    item.append(
+      makeElement('b', isCensored ? 'notation-legend__blank' : 'notation-mark', sign),
+      makeElement('span', '', label),
+    );
+    elements.notationLegend.append(item);
+    elements.coverNotationLegend.append(item.cloneNode(true));
+    elements.notationSummary.append(makeElement(
+      'span',
+      isCensored ? 'notation-summary__blank' : 'notation-mark notation-summary__mark',
+      sign,
+    ));
+  });
+}
+
+function renderNotationFields() {
+  elements.notationFields.replaceChildren();
+  NOTATION_FIELDS.forEach(({ kind, label, maxLength }) => {
+    const field = makeElement('label', 'notation-field');
+    const input = makeElement('input');
+    input.type = 'text';
+    input.maxLength = maxLength;
+    input.value = state.notation[kind];
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('aria-label', `${label} sign`);
+    input.addEventListener('input', () => {
+      state.notation = saveNotation(window.localStorage, { ...state.notation, [kind]: input.value });
+      input.value = state.notation[kind];
+      updateNotationDisplay();
+      if (state.cues.length) render();
+    });
+    field.append(makeElement('span', '', label), input);
+    elements.notationFields.append(field);
+  });
 }
 
 function showError(message) {
@@ -118,7 +246,9 @@ function updatePageEstimate() {
 function render() {
   if (!state.cues.length) return;
   const threshold = pauseThresholdMs();
-  const blocks = structureCues(state.cues, threshold);
+  const lineThreshold = lineThresholdMs(threshold);
+  const blocks = structureCues(state.cues, threshold, lineThreshold)
+    .filter((block) => tokenizeTranscript(block.text).length > 0);
   const duration = state.cues.at(-1).endMs;
   const hasHours = duration >= 3_600_000;
 
@@ -131,7 +261,9 @@ function render() {
     const transcript = makeElement('div', 'transcript-area');
     transcript.append(makeElement('time', '', formatTimestamp(block.startMs, hasHours)));
     if (block.speaker) transcript.append(makeElement('h3', '', block.speaker));
-    transcript.append(makeElement('p', '', block.text));
+    const paragraph = makeElement('p');
+    appendTranscript(paragraph, block.text);
+    transcript.append(paragraph);
 
     const notes = makeElement('aside', 'formula-notes');
     notes.setAttribute('aria-label', `Formula and handwritten notes for block ${index + 1}`);
@@ -192,6 +324,13 @@ elements.sampleButton.addEventListener('click', () => activateDocument('sample-s
 elements.printButton.addEventListener('click', () => window.print());
 elements.documentTitle.addEventListener('input', render);
 elements.pauseThreshold.addEventListener('change', render);
+elements.lineThreshold.addEventListener('change', render);
+elements.resetNotation.addEventListener('click', () => {
+  state.notation = saveNotation(window.localStorage, DEFAULT_NOTATION);
+  renderNotationFields();
+  updateNotationDisplay();
+  if (state.cues.length) render();
+});
 
 for (const eventName of ['dragenter', 'dragover']) {
   window.addEventListener(eventName, (event) => {
@@ -214,4 +353,6 @@ window.addEventListener('beforeprint', () => {
 document.fonts?.ready.then(() => {
   if (state.cues.length) updatePageEstimate();
 });
+renderNotationFields();
+updateNotationDisplay();
 if (new URLSearchParams(window.location.search).has('sample')) activateDocument('sample-standup.srt', sampleSrt);
