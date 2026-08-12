@@ -1,15 +1,15 @@
-import { formatTimestamp, parseSrt, structureCues, titleFromFilename } from './srt.js';
-import { tokenizeTranscript } from './audio-events.js';
-import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js';
-import { downloadWorksheetPdf, estimatePdfPageCount } from './pdf-generator.js';
-import { layoutTranscript } from './transcript-layout.js';
+import { formatTimestamp, parseSrt, structureCues, titleFromFilename } from './srt.js?v=__BUILD_VERSION__';
+import { tokenizeTranscript } from './audio-events.js?v=__BUILD_VERSION__';
+import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js?v=__BUILD_VERSION__';
+import { downloadWorksheetPdf, estimatePdfPageCount } from './pdf-generator.js?v=__BUILD_VERSION__';
+import { layoutTranscript } from './transcript-layout.js?v=__BUILD_VERSION__';
 
 const elements = {
   blocks: document.querySelector('#blocks'),
   body: document.body,
   documentContent: document.querySelector('#document-content'),
   documentTitle: document.querySelector('#document-title'),
-  downloadButton: document.querySelector('#download-button'),
+  downloadButton: document.querySelector('#download-button, #print-button'),
   downloadLabel: document.querySelector('#download-label'),
   dropZone: document.querySelector('#drop-zone'),
   emptyState: document.querySelector('#empty-state'),
@@ -195,6 +195,10 @@ function clearError() {
   elements.error.textContent = '';
 }
 
+function setDownloadLabel(label) {
+  if (elements.downloadLabel) elements.downloadLabel.textContent = label;
+}
+
 function blockHeightMm(block) {
   const durationSeconds = Math.max(1, (block.endMs - block.startMs) / 1000);
   return Math.min(76, Math.round(28 + durationSeconds * 0.65));
@@ -248,7 +252,7 @@ function activateDocument(filename, source) {
     clearError();
     elements.documentTitle.value = titleFromFilename(filename);
     elements.documentTitle.disabled = false;
-    elements.downloadButton.disabled = false;
+    if (elements.downloadButton) elements.downloadButton.disabled = false;
     elements.pageEstimate.hidden = false;
     elements.replaceButton.hidden = false;
     elements.fileStatus.textContent = filename;
@@ -284,11 +288,11 @@ elements.uploadButton.addEventListener('click', () => elements.fileInput.click()
 elements.replaceButton.addEventListener('click', () => elements.fileInput.click());
 elements.fileInput.addEventListener('change', () => handleFile(elements.fileInput.files?.[0]));
 elements.sampleButton.addEventListener('click', () => activateDocument('sample-standup.srt', sampleSrt));
-elements.downloadButton.addEventListener('click', async () => {
+elements.downloadButton?.addEventListener('click', async () => {
   clearError();
   elements.downloadButton.disabled = true;
   elements.downloadButton.setAttribute('aria-busy', 'true');
-  elements.downloadLabel.textContent = 'Building PDF…';
+  setDownloadLabel('Building PDF…');
   try {
     await downloadWorksheetPdf({
       title: elements.documentTitle.value.trim() || 'Untitled transcript',
@@ -300,7 +304,7 @@ elements.downloadButton.addEventListener('click', async () => {
   } finally {
     elements.downloadButton.disabled = false;
     elements.downloadButton.removeAttribute('aria-busy');
-    elements.downloadLabel.textContent = 'Download PDF';
+    setDownloadLabel('Download PDF');
   }
 });
 elements.documentTitle.addEventListener('input', render);

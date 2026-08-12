@@ -1,4 +1,4 @@
-import { isKnownAudioEvent } from './audio-events.js';
+import { isKnownAudioEvent } from './audio-events.js?v=__BUILD_VERSION__';
 
 const TIMING_LINE = /^(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{3})(?:\s+.*)?$/;
 const BRACKETED_SPEAKER_LINE = /^\[([^\]]{1,40})\][ \t]+(.+)$/u;

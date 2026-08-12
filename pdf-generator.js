@@ -1,5 +1,5 @@
-import { formatTimestamp } from './srt.js';
-import { layoutTranscript } from './transcript-layout.js';
+import { formatTimestamp } from './srt.js?v=__BUILD_VERSION__';
+import { layoutTranscript } from './transcript-layout.js?v=__BUILD_VERSION__';
 
 const POINTS_PER_MM = 72 / 25.4;
 const PAGE_MARGIN = Object.freeze([18 * POINTS_PER_MM, 17 * POINTS_PER_MM, 18 * POINTS_PER_MM, 22 * POINTS_PER_MM]);

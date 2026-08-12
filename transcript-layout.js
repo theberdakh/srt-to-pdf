@@ -1,4 +1,4 @@
-import { eventEndsTranscriptLine, tokenizeTranscript } from './audio-events.js';
+import { eventEndsTranscriptLine, tokenizeTranscript } from './audio-events.js?v=__BUILD_VERSION__';
 
 function makeLine(indent = false, thoughtBreakBefore = false) {
   return { runs: [], indent, thoughtBreakBefore };

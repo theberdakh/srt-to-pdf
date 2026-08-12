@@ -1,4 +1,4 @@
-import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js';
+import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js?v=__BUILD_VERSION__';
 
 let notation = typeof window === 'undefined' ? { ...DEFAULT_NOTATION } : loadNotation(window.localStorage);
 

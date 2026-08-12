@@ -38,6 +38,7 @@ jobs:
           cp index.html app.js audio-events.js event-styles.html event-styles.js event-styles.css notation.js pagination.js pdf-generator.js srt.js styles.css transcript-layout.js _site/
           cp -R assets _site/assets
           cp -R vendor _site/vendor
+          find _site -maxdepth 1 -type f \( -name '*.html' -o -name '*.js' \) -exec sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" {} +
           touch _site/.nojekyll
 
       - name: Configure GitHub Pages
