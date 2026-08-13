@@ -1,6 +1,13 @@
-import { DEFAULT_NOTATION, NOTATION_FIELDS, loadNotation, saveNotation } from './notation.js?v=__BUILD_VERSION__';
+import {
+  DEFAULT_NOTATION,
+  EVENT_OPTIONS,
+  PICTOGRAM_OPTIONS,
+  loadNotation,
+  notationForEvent,
+  saveNotation,
+} from './notation.js?v=__BUILD_VERSION__';
 
-let notation = typeof window === 'undefined' ? { ...DEFAULT_NOTATION } : loadNotation(window.localStorage);
+let notation = typeof window === 'undefined' ? DEFAULT_NOTATION : loadNotation(window.localStorage);
 
 export const transcript = [
   {
@@ -102,7 +109,7 @@ function icon(kind, label, className = '') {
   mark.setAttribute('role', 'img');
   mark.setAttribute('aria-label', label);
   mark.title = label;
-  mark.textContent = notation[kind] ?? '';
+  mark.textContent = notationForEvent(notation, kind);
   return mark;
 }
 
@@ -203,7 +210,7 @@ function makeBlock(block, approach) {
 function makeLegend(approach) {
   const legend = element('footer', 'specimen-legend');
   const items = [
-    ['music', 'music'], ['applause', 'applause'], ['laughter', 'laughter'], ['censored', 'censored'],
+    ['music', 'music'], ['applause', 'applause'], ['laughter', 'laughter'],
   ];
   items.forEach(([kind, label]) => {
     const item = element('span');
@@ -244,18 +251,21 @@ function renderNotationEditor() {
   fields.replaceChildren();
   updateNotationSummary();
 
-  NOTATION_FIELDS.forEach(({ kind, label, maxLength }) => {
+  EVENT_OPTIONS.forEach(({ kind, label }) => {
     const field = element('label', 'comparison-notation-field');
-    const input = element('input');
-    input.type = 'text';
-    input.maxLength = maxLength;
-    input.value = notation[kind];
-    input.autocomplete = 'off';
-    input.spellcheck = false;
-    input.setAttribute('aria-label', `${label} sign`);
-    input.addEventListener('input', () => {
-      notation = saveNotation(window.localStorage, { ...notation, [kind]: input.value });
-      input.value = notation[kind];
+    const input = element('select');
+    PICTOGRAM_OPTIONS.forEach((value) => {
+      const option = element('option', '', value);
+      option.value = value;
+      input.append(option);
+    });
+    input.value = notationForEvent(notation, kind);
+    input.setAttribute('aria-label', `${label} pictogram`);
+    input.addEventListener('change', () => {
+      const mappings = notation.mappings.map((mapping) => (
+        mapping.event === kind ? { ...mapping, pictogram: input.value } : { ...mapping }
+      ));
+      notation = saveNotation(window.localStorage, { mappings });
       updateNotationSummary();
       renderComparison();
     });
@@ -267,8 +277,8 @@ function renderNotationEditor() {
 function updateNotationSummary() {
   const summary = document.querySelector('#comparison-notation-summary');
   summary.replaceChildren();
-  NOTATION_FIELDS.forEach(({ kind }) => {
-    const sign = notation[kind];
+  EVENT_OPTIONS.forEach(({ kind }) => {
+    const sign = notationForEvent(notation, kind);
     if (!sign) return;
     summary.append(element(
       'span',
