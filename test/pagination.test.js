@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { A4_CONTENT_HEIGHT_MM, countPdfPages } from '../pagination.js';
 
-test('reserves a dedicated bottom margin band for the repeated print legend', () => {
+test('uses the printable A4 content height', () => {
   assert.equal(A4_CONTENT_HEIGHT_MM, 252);
 });
 

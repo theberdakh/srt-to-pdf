@@ -26,6 +26,10 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8V6a4.5 4.5 0 0 1 9 0v2M4 8h12v9H4z" /></svg>
         Your file stays in this browser
       </p>
+      <div id="masthead-file" class="masthead-file" hidden>
+        <span id="file-status" class="masthead-filename">No file yet</span>
+        <button id="replace-button" class="text-button masthead-replace" type="button">Replace file</button>
+      </div>
     </header>
 
     <main class="workspace">
@@ -46,64 +50,50 @@
 
       <div id="drop-zone" class="workbench" data-state="empty">
         <aside class="controls" aria-label="Worksheet settings">
-          <div class="controls__topline">
-            <span>Worksheet</span>
-            <span id="file-status" class="file-status">No file yet</span>
-          </div>
-
-          <label class="field">
-            <span>Title</span>
-            <textarea id="document-title" rows="4" maxlength="200" disabled>Untitled transcript</textarea>
-          </label>
-
-          <label class="field">
-            <span>Start a new line after</span>
-            <span class="number-field">
-              <input id="line-threshold" type="number" value="0.8" min="0.1" max="2.4" step="0.1" inputmode="decimal" />
-              <small>seconds of silence</small>
-            </span>
-          </label>
-
-          <label class="field">
-            <span>Start a new block after</span>
-            <span class="number-field">
-              <input id="pause-threshold" type="number" value="2.5" min="0.5" max="15" step="0.5" inputmode="decimal" />
-              <small>seconds of silence</small>
-            </span>
-          </label>
-
-          <details class="notation-settings">
-            <summary>
-              <span>Notation signs</span>
-              <output id="notation-summary" aria-label="Current notation signs"></output>
-            </summary>
-            <p>Music, applause, and laughter print inside thin rings. Censored speech stays a writing line. Saved only in this browser.</p>
+          <section class="settings-card notation-card" aria-label="Notation settings">
+            <h2>Notation</h2>
             <div id="notation-fields" class="notation-fields"></div>
-            <div class="notation-actions">
-              <button id="reset-notation" class="text-button" type="button">Reset defaults</button>
-              <a class="text-button" href="./event-styles.html">Compare placement</a>
+            <button id="reset-notation" class="text-button notation-reset" type="button">Reset defaults</button>
+          </section>
+
+          <section class="settings-card spacing-card" aria-labelledby="spacing-heading">
+            <h2 id="spacing-heading">Spacing</h2>
+            <label class="field">
+              <span>Start a new line after</span>
+              <span class="number-field">
+                <input id="line-threshold" type="number" value="0.8" min="0.1" max="2.4" step="0.1" inputmode="decimal" />
+                <small>seconds of silence</small>
+              </span>
+            </label>
+
+            <label class="field">
+              <span>Start a new block after</span>
+              <span class="number-field">
+                <input id="pause-threshold" type="number" value="2.5" min="0.5" max="15" step="0.5" inputmode="decimal" />
+                <small>seconds of silence</small>
+              </span>
+            </label>
+            <button id="reset-transcript" class="text-button reset-transcript" type="button" hidden>Reset transcript edits</button>
+          </section>
+
+          <section class="settings-card download-card" aria-label="PDF download">
+            <div class="pdf-filename">
+              <span>PDF filename</span>
+              <output id="pdf-filename" title="subtitle-folio.pdf">subtitle-folio.pdf</output>
             </div>
-          </details>
-
-          <p class="setting-note">Short pauses create lines inside one block. Long pauses create a new block and writing area.</p>
-          <div id="error-message" class="error-message" role="alert" hidden></div>
-
-          <button id="download-button" class="button button--ink" type="button" disabled>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4L6 9M3 16h14" /></svg>
-            <span id="download-label">Download PDF</span>
-          </button>
-          <p id="page-estimate" class="page-estimate" aria-live="polite" hidden>
-            <span>Estimated PDF length</span>
-            <strong id="page-total">—</strong>
-          </p>
+            <div id="error-message" class="error-message" role="alert" hidden></div>
+            <button id="download-button" class="button button--ink" type="button" disabled>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m0 0 4-4m-4 4L6 9M3 16h14" /></svg>
+              <span id="download-label">Download PDF</span>
+            </button>
+            <p id="page-estimate" class="page-estimate" aria-live="polite" hidden>
+              <span>Estimated PDF length</span>
+              <strong id="page-total">—</strong>
+            </p>
+          </section>
         </aside>
 
-        <section class="preview-region" aria-labelledby="preview-heading">
-          <div class="preview-toolbar">
-            <h2 id="preview-heading">Worksheet preview</h2>
-            <button id="replace-button" class="text-button" type="button" hidden>Replace file</button>
-          </div>
-
+        <section class="preview-region" aria-label="Worksheet preview">
           <article id="print-document" class="paper" aria-live="polite">
             <div id="empty-state" class="empty-state">
               <svg viewBox="0 0 72 72" aria-hidden="true"><path d="M19 8h25l10 10v46H19zM44 8v11h10M27 32h19M27 40h19M27 48h13" /></svg>
@@ -114,17 +104,31 @@
             <div id="document-content" class="document-content" hidden>
               <section class="cover-page" aria-label="Front notes page">
                 <div class="cover-heading">
-                  <h2 id="print-title">Untitled transcript</h2>
-                  <aside id="cover-notation-legend" class="cover-notation-legend" aria-label="Notation map"></aside>
+                  <div class="cover-title-group">
+                    <h2 id="print-title" contenteditable="true" role="textbox" aria-label="Title" aria-multiline="true" spellcheck="true">Untitled transcript</h2>
+                    <p id="cover-laugh-stats" class="cover-laugh-stats">0 laughs · 0.0 laughs/min</p>
+                  </div>
                 </div>
+                <aside id="cover-notation-legend" class="cover-notation-legend" aria-label="Notation map"></aside>
                 <div class="cover-lines" aria-hidden="true"></div>
               </section>
 
               <section class="transcript-document">
+                <div id="text-format-toolbar" class="text-format-toolbar" role="toolbar" aria-label="Transcript text formatting" hidden>
+                  <button type="button" data-format="bold" aria-label="Bold" aria-pressed="false" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                  <button type="button" data-format="italic" aria-label="Italic" aria-pressed="false" title="Italic (Ctrl+I)"><em>I</em></button>
+                  <button type="button" data-format="underline" aria-label="Underline" aria-pressed="false" title="Underline (Ctrl+U)"><span class="format-underline">U</span></button>
+                  <button type="button" data-format="highlight" aria-label="Red highlight" aria-pressed="false" title="Red highlight"><span class="format-highlight">A</span></button>
+                </div>
+                <div
+                  id="notes-editor"
+                  class="notes-editor"
+                  aria-label="Worksheet notes"
+                  role="group"
+                ></div>
                 <div id="blocks" class="blocks"></div>
               </section>
 
-              <footer id="notation-legend" class="notation-legend" aria-label="Notation legend"></footer>
             </div>
           </article>
         </section>

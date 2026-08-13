@@ -18,16 +18,16 @@ pdfMake.setLocalAccessPolicy((fontPath) => {
 });
 pdfMake.addFonts({
   FolioLatin: {
-    normal: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    bold: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    italics: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    bolditalics: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
+    normal: resolve(projectRoot, 'assets/source-serif-4-regular.ttf'),
+    bold: resolve(projectRoot, 'assets/source-serif-4-bold.ttf'),
+    italics: resolve(projectRoot, 'assets/source-serif-4-italic.ttf'),
+    bolditalics: resolve(projectRoot, 'assets/source-serif-4-bold-italic.ttf'),
   },
   FolioCyrillic: {
-    normal: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    bold: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    italics: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
-    bolditalics: resolve(projectRoot, 'assets/source-serif-4-variable.ttf'),
+    normal: resolve(projectRoot, 'assets/source-serif-4-regular.ttf'),
+    bold: resolve(projectRoot, 'assets/source-serif-4-bold.ttf'),
+    italics: resolve(projectRoot, 'assets/source-serif-4-italic.ttf'),
+    bolditalics: resolve(projectRoot, 'assets/source-serif-4-bold-italic.ttf'),
   },
   Roboto: {
     normal: resolve(projectRoot, 'node_modules/pdfmake/fonts/Roboto/Roboto-Regular.ttf'),
@@ -43,6 +43,12 @@ const blocks = [
     endMs: 78_000,
     speaker: '',
     text: 'this is exciting i was a little too excited i panicked\nand got this haircut what an insane [ __ ] up my hair was\nfine it was totally fine [Laughter]\n\nthen two days ago i thought the hair looked good',
+    formats: [
+      { format: 'bold', start: 0, end: 16 },
+      { format: 'italic', start: 17, end: 44 },
+      { format: 'underline', start: 53, end: 65 },
+      { format: 'highlight', start: 106, end: 126 },
+    ],
   },
   {
     startMs: 84_000,
@@ -63,6 +69,7 @@ await pdfMake.createPdf(createPdfDefinition({
   title: '[English auto Generated] Shane Gillis Live In Austin Stand Up Comedy — Editable Long Title',
   blocks,
   notation: DEFAULT_NOTATION,
+  notes: 'Topic: confidence collapsing into panic\n\nFormula: ordinary haircut story -> identity overreaction\nCallback: return to the first visual detail',
 })).write(outputPath);
 
 console.log(outputPath);
